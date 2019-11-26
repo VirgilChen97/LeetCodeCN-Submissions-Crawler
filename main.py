@@ -71,7 +71,7 @@ def scraping(client):
 
     page_num == START_PAGE
     while True:
-        submissions_url = "https://leetcode-cn.com/api/submissions/?offset=" + str(page_num) + "&limit=1&lastkey="
+        submissions_url = "https://leetcode-cn.com/api/submissions/?offset=" + str(page_num) + "&limit=20&lastkey="
         print("Now url: ", str(submissions_url))
 
         h = client.get(submissions_url, verify=False)
@@ -80,6 +80,7 @@ def scraping(client):
         html = json.loads(h.text)
         if "submissions_dump" not in html:
             if html["detail"] == '您没有执行该操作的权限。':
+                time.sleep(5)
                 continue
             else:
                 print("No further submissions")
@@ -134,7 +135,7 @@ def scraping(client):
             except Exception as e:
                 print(e.with_traceback)
 
-        page_num += 1
+        page_num += 20
 
 
 def loadEngName():
