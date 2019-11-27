@@ -1,6 +1,7 @@
 {
-    "username": "Virgil_Chen",
-    "password": "",
-    "outputDir": "/home/virgil/LeetCode_Sol",
-    "time": 1000
+    "username" : "Virgil_Chen",
+    "password" : "22222222",
+    "outputDir" : "/home/virgil/LeetCode_Sol",
+    "time" : 1000,
+    "language" : "en_US"
 }

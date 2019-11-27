@@ -14,6 +14,7 @@ import requests
 import json
 from bs4 import BeautifulSoup
 import json
+
 # ~~~~~~~~~~~~以下是无需修改的参数~~~~~~~~~~~~~~~~·
 # 为了避免弹出一万个warning，which is caused by 非验证的get请求
 requests.packages.urllib3.disable_warnings()
@@ -24,7 +25,11 @@ sign_in_url = 'accounts/login/'
 sign_in_url = leetcode_url + sign_in_url
 submissions_url = 'submissions/'
 submissions_url = leetcode_url + submissions_url
-dic = {}
+engDic = {}
+chnDic = {}
+easy = set()
+medium = set()
+hard = set()
 
 with open("config.json", "r") as f:  # 读取用户名，密码，本地存储目录
     temp = json.loads(f.read())
@@ -32,6 +37,7 @@ with open("config.json", "r") as f:  # 读取用户名，密码，本地存储�
     PASSWORD = temp['password']
     OUTPUT_DIR = temp['outputDir']
     TIME_CONTROL = 3600 * 24 * temp['time']
+    LANGUAGE = temp['language']
 # ~~~~~~~~~~~~以上是无需修改的参数~~~~~~~~~~~~~~~~·
 
 # ~~~~~~~~~~~~以下是可以修改的参数~~~~~~~~~~~~~~~~·
@@ -48,7 +54,8 @@ def login(email, password):  # 本函数copy自https://gist.github.com/fyears/48
         try:
             client.get(sign_in_url, verify=False)
             login_data = {'login': email, 'password': password}
-            result = client.post(sign_in_url, data=login_data, headers=dict(Referer=sign_in_url))
+            result = client.post(sign_in_url, data=login_data,
+                                 headers=dict(Referer=sign_in_url))
 
             if result.ok:
                 print("Login successfully!")
@@ -63,28 +70,27 @@ def login(email, password):  # 本函数copy自https://gist.github.com/fyears/48
 
 def scraping(client):
     page_num = START_PAGE
-    visited = [0 for _ in range(2000)]
 
     file_format = {"cpp": ".cpp", "python3": ".py", "python": ".py", "mysql": ".sql", "golang": ".go", "java": ".java",
                    "c": ".c", "javascript": ".js", "php": ".php", "csharp": ".cs", "ruby": ".rb", "swift": ".swift",
                    "scala": ".scl", "kotlin": ".kt", "rust": ".rs"}
 
     page_num == START_PAGE
-    while True:
-        submissions_url = "https://leetcode-cn.com/api/submissions/?offset=" + str(page_num) + "&limit=20&lastkey="
+    visited = set()
+    hasNext = True
+
+    while hasNext:
+        submissions_url = "https://leetcode-cn.com/api/submissions/?offset=" + \
+            str(page_num) + "&limit=20&lastkey="
         print("Now url: ", str(submissions_url))
 
         h = client.get(submissions_url, verify=False)
         t = time.time()
-        invalidset = set()
+
         html = json.loads(h.text)
         if "submissions_dump" not in html:
-            if html["detail"] == '您没有执行该操作的权限。':
-                time.sleep(5)
-                continue
-            else:
-                print("No further submissions")
-                break
+            time.sleep(5)
+            continue
 
         for idx, submission in enumerate((html["submissions_dump"])):
             Status = submission['status_display']
@@ -92,7 +98,7 @@ def scraping(client):
             Lang = submission['lang']
 
             if Status != "Accepted":
-                print(str(GetProblemId(Title)) + " is not Accepted")
+                print(str(chnDic.get(Title)) + " is not Accepted")
                 continue
 
             # 时间管理，本行代表只记录最近的TIME_CONTROL天内的提交记录
@@ -100,51 +106,92 @@ def scraping(client):
                 return
 
             try:
-                Pid = GetProblemId(Title)
+                Pid = chnDic.get(Title)
 
-                if Pid == 0 or Title in invalidset:
-                    print(str(GetProblemId(Title)) + " Failed ! Due to unknown Pid! ")
-                    if Title not in invalidset:  # 第一次没找到
-                        with open("Log.txt", "a") as log:
-                            log.write("Unknown PID happened for ", Title)
-                        invalidset.add(Title)
+                if Pid in visited:
+                    print(str(Pid) + ' Not newest AC')
 
-                else:
-                    if visited[Pid] != 1:
-                        newpath = OUTPUT_DIR + "/" + \
-                            '{:0=4}'.format(Pid) + "." + \
-                            str(dic.get(Pid))  # 存放的文件夹名
-                        if not os.path.exists(newpath):
-                            os.mkdir(newpath)
+                elif Pid not in visited:
+                    if LANGUAGE == 'en_US':
+                        problem_name = str(engDic.get(Pid))
+                    else:
+                        problem_name = str(Title)
 
-                        filename = '{:0=4}'.format(
-                            Pid) + "-" + str(dic.get(Pid)) + file_format[Lang]  # 存放的文件名
-                        totalpath = os.path.join(
-                            newpath, filename)  # 把文件夹和文件组合成新的地址
+                    if Pid in easy:
+                        difficulty = 'Easy'
+                    elif Pid in medium:
+                        difficulty = 'Medium'
+                    else:
+                        difficulty = 'Hard'
 
-                        if os.path.exists(totalpath):
-                            # 跳过本地已记录的submission
-                            print(newpath + "exists! Continue for the next submission!")
-                            continue
+                    newpath = OUTPUT_DIR + "/" + difficulty 
+                    if not os.path.exists(newpath):
+                        os.mkdir(newpath)
 
-                        with open(totalpath, "w") as f:  # 开始写到本地
-                            # print ("Writing begins!", totalpath)
-                            f.write(submission['code'])
-                            print(str(GetProblemId(Title)) + " Writing ends!")
-                            visited[Pid] = 1  # 保障每道题只记录最新的AC解
+                    filename = '{:0=4}'.format(
+                        Pid) + "-" + problem_name + file_format[Lang]
+                    totalpath = os.path.join(
+                        newpath, filename)
+
+                    if os.path.exists(totalpath):
+                        # 跳过本地已记录的submission
+                        print(
+                            str(Pid) + "Already Exists")
+                        continue
+
+                    with open(totalpath, "w") as f:  # 开始写到本地
+                        # print ("Writing begins!", totalpath)
+                        f.write(submission['code'])
+                        print(str(GetProblemId(Title)) + " Saved")
+
             except Exception as e:
                 print(e.with_traceback)
+            
+            visited.add(Pid)
 
+        hasNext = html['has_next']
         page_num += 20
 
 
-def loadEngName():
-    with open("problem.json", "r", encoding='UTF-8') as f:
-        problems = json.load(f)["stat_status_pairs"]
+def loadEngProblemList(client):
+    response = client.get(
+        "https://leetcode-cn.com/api/problems/all/", verify=False)
+    data = json.loads(response.text)
+
+    if "stat_status_pairs" not in data:
+        print("Failed to get problem list")
+    else:
+        problems = data["stat_status_pairs"]
         for problem in problems:
             num = problem["stat"]["question_id"]
             title = problem["stat"]["question__title_slug"]
-            dic[num] = str(title)
+            if problem['difficulty']['level'] == 1:
+                easy.add(num)
+            elif problem['difficulty']['level'] == 2:
+                medium.add(num)
+            else:
+                hard.add(num)
+
+            engDic[num] = str(title)
+
+
+def loadChnProblemList(client):
+    query = {
+        "operationName": "getQuestionTranslation",
+        "variables": {},
+        "query": "query getQuestionTranslation($lang: String) {\n  translations: allAppliedQuestionTranslations(lang: $lang) {\n    title\n    questionId\n    __typename\n  }\n}\n"}
+    headers = {
+        "content-type": "application/json",
+        "origin": "https://leetcode-cn.com",
+        "referer": "https://leetcode-cn.com/problemset/all/"
+    }
+    response = requests.post(
+        "https://leetcode-cn.com/graphql", headers=headers, data=json.dumps(query))
+    data = json.loads(response.text)
+    for problem in data['data']['translations']:
+        Pid = problem['questionId']
+        title = problem['title']
+        chnDic[str(title)] = int(Pid)
 
 
 def git_push():
@@ -163,15 +210,15 @@ def git_push():
 def main():
     email = USERNAME
     password = PASSWORD
-    loadEngName()
 
     print('login')
     client = login(email, password)
 
-    print('start scrapping')
-    scraping(client)
-    print('end scrapping')
+    print('Get Problem List')
+    loadEngProblemList(client)
+    loadChnProblemList(client)
 
+    scraping(client)
     git_push()
     print('Git PUSH finished')
 
