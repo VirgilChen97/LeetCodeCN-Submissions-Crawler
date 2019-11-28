@@ -12,6 +12,10 @@
 3. `pip3 install requests` 安装requests包
 4. `python3 main.py`
 
+# 例子
+
+我自己的 LeetCode 题解: https://github.com/VirgilChen97/LeetCode_Sol
+
 # 一些说明
 1. 目前支持的语言有：{"cpp": ".cpp", "python3": ".py", "python": ".py", "mysql": ".sql", "golang": ".go", "java": ".java",
                    "c": ".c", "javascript": ".js", "php": ".php", "csharp": ".cs", "ruby": ".rb", "swift": ".swift",
