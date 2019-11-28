@@ -1,29 +1,17 @@
 # /usr/bin/env python3
-"""
-这是一个将力扣中国(leetcode-cn.com)上的【个人提交】的submission自动爬到本地并push到github上的爬虫脚本。
-请使用相同目录下的config.json设置 用户名，密码，本地储存目录等参数。
-致谢@fyears， 本脚本的login函数来自https://gist.github.com/fyears/487fc702ba814f0da367a17a2379e8ba
-"""
-
-import unicodedata
 import sys
 import os
 import time
 import requests
 import json
-from bs4 import BeautifulSoup
-import json
-
 # ~~~~~~~~~~~~以下是无需修改的参数~~~~~~~~~~~~~~~~·
 # 为了避免弹出一万个warning，which is caused by 非验证的get请求
 requests.packages.urllib3.disable_warnings()
 
 leetcode_url = 'https://leetcode-cn.com/'
 
-sign_in_url = 'accounts/login/'
-sign_in_url = leetcode_url + sign_in_url
-submissions_url = 'submissions/'
-submissions_url = leetcode_url + submissions_url
+sign_in_url = leetcode_url + 'accounts/login/'
+submissions_url = leetcode_url + 'submissions/'
 engDic = {}
 chnDic = {}
 easy = set()
@@ -113,8 +101,11 @@ def scraping(client):
                 elif Pid not in visited:
                     if LANGUAGE == 'en_US':
                         problem_name = str(engDic.get(Pid))
-                    else:
+                    elif LANGUAGE == 'zh_CN':
                         problem_name = str(Title)
+                    else:
+                        print('Invalid Language.')
+                        return
 
                     if Pid in easy:
                         difficulty = 'Easy'
@@ -231,7 +222,7 @@ def main():
     loadChnProblemList(client)
 
     print('Start fetching')
-    #scraping(client)
+    scraping(client)
 
     print('Generate README')
 
