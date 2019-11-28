@@ -9,7 +9,6 @@ import unicodedata
 import sys
 import os
 import time
-from ProblemList import GetProblemId
 import requests
 import json
 from bs4 import BeautifulSoup
@@ -30,6 +29,7 @@ chnDic = {}
 easy = set()
 medium = set()
 hard = set()
+visited = set()
 
 with open("config.json", "r") as f:  # 读取用户名，密码，本地存储目录
     temp = json.loads(f.read())
@@ -76,7 +76,6 @@ def scraping(client):
                    "scala": ".scl", "kotlin": ".kt", "rust": ".rs"}
 
     page_num == START_PAGE
-    visited = set()
     hasNext = True
 
     while hasNext:
@@ -89,6 +88,7 @@ def scraping(client):
 
         html = json.loads(h.text)
         if "submissions_dump" not in html:
+            print(html)
             time.sleep(5)
             continue
 
@@ -98,7 +98,6 @@ def scraping(client):
             Lang = submission['lang']
 
             if Status != "Accepted":
-                print(str(chnDic.get(Title)) + " is not Accepted")
                 continue
 
             # 时间管理，本行代表只记录最近的TIME_CONTROL天内的提交记录
@@ -109,7 +108,7 @@ def scraping(client):
                 Pid = chnDic.get(Title)
 
                 if Pid in visited:
-                    print(str(Pid) + ' Not newest AC')
+                    continue
 
                 elif Pid not in visited:
                     if LANGUAGE == 'en_US':
@@ -136,13 +135,13 @@ def scraping(client):
                     if os.path.exists(totalpath):
                         # 跳过本地已记录的submission
                         print(
-                            str(Pid) + "Already Exists")
+                            str(Pid) + " Already Exists")
                         continue
 
                     with open(totalpath, "w") as f:  # 开始写到本地
                         # print ("Writing begins!", totalpath)
                         f.write(submission['code'])
-                        print(str(GetProblemId(Title)) + " Saved")
+                        print(str(Pid) + " Saved")
 
             except Exception as e:
                 print(e.with_traceback)
@@ -157,6 +156,8 @@ def loadEngProblemList(client):
     response = client.get(
         "https://leetcode-cn.com/api/problems/all/", verify=False)
     data = json.loads(response.text)
+
+    generateReadme(data['ac_easy'], data['ac_medium'], data['ac_hard'])
 
     if "stat_status_pairs" not in data:
         print("Failed to get problem list")
@@ -193,18 +194,29 @@ def loadChnProblemList(client):
         title = problem['title']
         chnDic[str(title)] = int(Pid)
 
+def generateReadme(easy, medium, hard):
+       
+    path = os.path.join(OUTPUT_DIR, "README.md")
+    content =  "# LeetCode Solutions\n\n" + \
+            "This is all my accepted code on LeetCodeCN\n\n" + \
+            "Currently solved: \n\n" + \
+            "|Difficulty |Count|\n|-|-|\n" + \
+            "|**Easy**|`" + str(easy) + "`|\n" + \
+            "|**Medium**|`" + str(medium) + "`|\n" + \
+            "|**Hard**|`" + str(hard) + "`|\n" + \
+            "|Total|`" + str(easy+medium+hard) + "`|"
+
+    with open(path, "w") as f:
+        f.write(content)
 
 def git_push():
     today = time.strftime('%Y-%m-%d', time.localtime(time.time()))
     os.chdir(OUTPUT_DIR)
     print(os.getcwd())
     instructions = ["git add .", "git status",
-                    "git commit -m \"" + today, "git push -u origin master"]
+                    "git commit -m" + today, "git push -u origin master"]
     for ins in instructions:
         os.system(ins)
-        # print ("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-        print("~~~~~~~~~~~~~" + ins + " finished! ~~~~~~~~")
-        # print ("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
 
 def main():
@@ -218,7 +230,11 @@ def main():
     loadEngProblemList(client)
     loadChnProblemList(client)
 
-    scraping(client)
+    print('Start fetching')
+    #scraping(client)
+
+    print('Generate README')
+
     git_push()
     print('Git PUSH finished')
 
