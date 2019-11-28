@@ -231,7 +231,11 @@ def main():
     loadChnProblemList(client)
 
     print('Start fetching')
+<<<<<<< HEAD
     scraping(client)
+=======
+    #scraping(client)
+>>>>>>> 6cf18b0bb6ce35b6ee398fd68dfcf911ea71e586
 
     print('Generate README')
 
