@@ -225,7 +225,7 @@ def main():
     loadChnProblemList(client)
 
     print('Start fetching')
-    #scraping(client)
+    scraping(client)
 
     print('Generate README')
 

@@ -1,7 +1,16 @@
 {
+<<<<<<< HEAD
     "username" : "Your UserName",
     "password" : "Your Password",
+=======
+    "username" : "Virgil_Chen",
+<<<<<<< HEAD
+    "password" : "VirgilChen199758",
+=======
+    "password" : "YourPassword",
+>>>>>>> 6cf18b0bb6ce35b6ee398fd68dfcf911ea71e586
+>>>>>>> 03caa5783d46fab9d4547407a09043d8cda0338b
     "outputDir" : "/home/virgil/LeetCode_Sol",
-    "time" : 1000,
+    "time" : 1,
     "language" : "en_US"
 }
